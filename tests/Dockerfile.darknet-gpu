@@ -1,0 +1,33 @@
+# docker build tests/ -f tests/Dockerfile.darknet-gpu -t upload.rocks.canonical.com:5000/kubeflow/examples/darknet-gpu:latest
+# docker push upload.rocks.canonical.com:5000/kubeflow/examples/darknet-gpu:latest
+
+FROM nvidia/cuda:10.1-devel-ubuntu18.04 as compile
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update \
+ && apt install -y git libopencv-dev pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/pjreddie/darknet.git \
+ && cd darknet \
+ && make GPU=1 OPENCV=1 OPENMP=1
+
+FROM nvidia/cuda:10.1-base-ubuntu18.04
+
+COPY --from=compile /darknet/darknet /usr/bin/
+COPY --from=compile /darknet/cfg /cfg
+COPY --from=compile /darknet/data /data
+
+RUN apt update \
+ && apt install -y \
+        cuda-curand-10-1 \
+        libcublas10 \
+        libopencv-highgui3.2 \
+        libopencv-imgcodecs3.2 \
+        libopencv-videoio3.2 \
+ && rm -rf /var/lib/apt/lists/*
+
+ENTRYPOINT ['/usr/bin/darknet']
+
+CMD ['detect', '/cfg/yolov3.cfg', '/weights', 'dog.png']
