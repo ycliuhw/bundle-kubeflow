@@ -1,0 +1,14 @@
+applications:
+  ceph-mon:
+    charm: cs:ceph-mon
+    scale: 3
+  ceph-osd:
+    charm: cs:ceph-osd
+    scale: 3
+    storage:
+      osd-devices: 32G,2
+      osd-journals: 8G,1
+relations:
+  - [ceph-mon, ceph-osd]
+  - [ceph-mon:admin, kubernetes-master]
+  - [ceph-mon:client, kubernetes-master]
