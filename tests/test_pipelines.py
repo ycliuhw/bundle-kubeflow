@@ -6,6 +6,7 @@ from kfp import Client
 from .pipelines.cowsay import cowsay_pipeline
 from .pipelines.mnist import mnist_pipeline
 from .pipelines.katib import katib_pipeline
+from .pipelines.object_detection import object_detection_pipeline
 
 
 COWSAY_PARAMS = [{"name": "url", "value": "https://helloacm.com/api/fortune/"}]
@@ -38,6 +39,7 @@ KATIB_PARAMS = [
         'value': 'https://raw.githubusercontent.com/kubeflow/katib/master/examples/v1alpha3/grid-example.yaml',
     }
 ]
+OBJ_DET_PARAMS = []
 
 
 @pytest.mark.parametrize(
@@ -56,6 +58,9 @@ KATIB_PARAMS = [
             marks=[pytest.mark.full, pytest.mark.lite, pytest.mark.edge],
         ),
         pytest.param('katib', KATIB_PARAMS, katib_pipeline, marks=[pytest.mark.full]),
+        pytest.param(
+            'object_detection', OBJ_DET_PARAMS, object_detection_pipeline, marks=pytest.mark.gpu
+        ),
     ],
 )
 def test_pipelines(name: str, params: list, fn: Callable):
@@ -65,6 +70,6 @@ def test_pipelines(name: str, params: list, fn: Callable):
     run = client.create_run_from_pipeline_func(
         fn, arguments={p['name']: p['value'] for p in params}
     )
-    completed = client.wait_for_run_completion(run.run_id, timeout=1200)
+    completed = client.wait_for_run_completion(run.run_id, timeout=3600)
     status = completed.to_dict()['run']['status']
-    assert status == 'Succeeded', f'Pipeline status is {status}'
+    assert status == 'Succeeded', f'Pipeline {name} status is {status}'

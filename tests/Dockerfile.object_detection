@@ -1,0 +1,31 @@
+FROM tensorflow/tensorflow:1.12.0-gpu-py3
+
+RUN apt update \
+ && apt install -y \
+        git \
+        python3-tk \
+        wget \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/tensorflow/models.git /models
+
+WORKDIR /models/research/object_detection
+
+RUN wget -O protobuf.zip https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-linux-x86_64.zip \
+ && unzip -p protobuf.zip bin/protoc > /usr/bin/protoc \
+ && chmod +x /usr/bin/protoc \
+ && cd ../ \
+ && protoc object_detection/protos/*.proto --python_out=.
+
+RUN pip3 install Cython contextlib2 matplotlib pillow lxml minio requests
+
+
+RUN git clone https://github.com/cocodataset/cocoapi.git /cocoapi \
+ && cd /cocoapi/PythonAPI \
+ && make \
+ && cp -r pycocotools /models/research/
+
+ENV PYTHONPATH "${PYTHONPATH}:/models/research/:/models/research/slim"
+
+
+CMD ['python', 'object_detection/builders/model_builder_test.py']
