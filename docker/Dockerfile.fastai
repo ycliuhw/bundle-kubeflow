@@ -1,0 +1,18 @@
+FROM pytorch/pytorch:1.2-cuda10.0-cudnn7-devel
+
+ARG NB_USER="jovyan"
+ARG NB_UID="1000"
+ARG NB_GID="100"
+
+RUN useradd -m -s /bin/bash -N -u $NB_UID $NB_USER && \
+    chown $NB_USER:$NB_GID /workspace
+
+RUN pip install jupyter
+
+USER $NB_USER
+
+RUN git clone https://github.com/fastai/course-v3.git /workspace/course
+
+ENV NB_PREFIX /
+
+CMD ["sh", "-c", "jupyter notebook --notebook-dir=/workspace --ip=0.0.0.0 --no-browser --allow-root --port=8888 --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.allow_origin='*' --NotebookApp.base_url=${NB_PREFIX}"]
