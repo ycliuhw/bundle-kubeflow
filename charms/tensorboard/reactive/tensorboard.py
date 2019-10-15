@@ -51,7 +51,18 @@ def start_charm():
                         'username': image_info.username,
                         'password': image_info.password,
                     },
-                    'command': ['/usr/local/bin/tensorboard', '--logdir=/logs', f'-port={port}'],
+                    'command': [
+                        '/usr/local/bin/tensorboard',
+                        '--logdir=s3://mlpipeline/pipelines',
+                        f'-port={port}',
+                    ],
+                    'config': {
+                        'S3_ENDPOINT': 'minio:9000',
+                        'S3_VERIFY_SSL': '0',
+                        'S3_USE_HTTPS': '0',
+                        'AWS_ACCESS_KEY_ID': 'minio',
+                        'AWS_SECRET_ACCESS_KEY': 'minio123',
+                    },
                     'ports': [{'name': 'tensorboard', 'containerPort': port}],
                 }
             ],
