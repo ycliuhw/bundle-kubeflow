@@ -10,7 +10,7 @@ resources:
     type: oci-image
     description: 'Backing OCI image'
     auto-fetch: true
-    upstream-source: gcr.io/kubeflow-images-public/notebook-controller:v20190401-v0.4.0-rc.1-308-g33618cc9-e3b0c4
+    upstream-source: gcr.io/kubeflow-images-public/notebook-controller:v1.0.0-g3ec0de71
 deployment:
   type: stateless
   service: omit

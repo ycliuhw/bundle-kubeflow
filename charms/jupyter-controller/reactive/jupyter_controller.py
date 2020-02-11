@@ -27,8 +27,6 @@ def start_charm():
 
     image_info = layer.docker_resource.get_info('oci-image')
 
-    crd = yaml.safe_load(Path("files/crd-v1alpha1.yaml").read_text())
-
     layer.caas_base.pod_spec_set(
         {
             'version': 2,
@@ -43,8 +41,13 @@ def start_charm():
                     {'apiGroups': [''], 'resources': ['pods'], 'verbs': ['get', 'list', 'watch']},
                     {'apiGroups': [''], 'resources': ['services'], 'verbs': ['*']},
                     {
+                        'apiGroups': [''],
+                        'resources': ['events'],
+                        'verbs': ['get', 'list', 'watch', 'create'],
+                    },
+                    {
                         'apiGroups': ['kubeflow.org'],
-                        'resources': ['notebooks', 'notebooks/status'],
+                        'resources': ['notebooks', 'notebooks/status', 'notebooks/finalizers'],
                         'verbs': ['*'],
                     },
                     {
@@ -63,12 +66,23 @@ def start_charm():
                         'username': image_info.username,
                         'password': image_info.password,
                     },
+                    'config': {'USE_ISTIO': False},
+                    'kubernetes': {
+                        'livenessProbe': {
+                            'httpGet': {'path': '/metrics', 'port': 8080},
+                            'initialDelaySeconds': 30,
+                            'periodSeconds': 30,
+                        }
+                    },
                 }
             ],
         },
         {
             'kubernetesResources': {
-                'customResourceDefinitions': {crd['metadata']['name']: crd['spec']},
+                'customResourceDefinitions': {
+                    crd['metadata']['name']: crd['spec']
+                    for crd in yaml.safe_load_all(Path("files/crds.yaml").read_text())
+                },
                 'serviceAccounts': [
                     {
                         'name': 'jupyter-notebook',

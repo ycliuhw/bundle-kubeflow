@@ -44,8 +44,13 @@ def start_charm():
                         'verbs': ['get', 'list', 'create', 'delete'],
                     },
                     {
+                        'apiGroups': ['authorization.k8s.io'],
+                        'resources': ['subjectaccessreviews'],
+                        'verbs': ['create'],
+                    },
+                    {
                         'apiGroups': ['kubeflow.org'],
-                        'resources': ['notebooks', 'poddefaults'],
+                        'resources': ['notebooks', 'notebooks/finalizers', 'poddefaults'],
                         'verbs': ['get', 'list', 'create', 'delete'],
                     },
                     {
@@ -53,23 +58,12 @@ def start_charm():
                         'resources': ['persistentvolumeclaims'],
                         'verbs': ['create', 'delete', 'get', 'list'],
                     },
+                    {'apiGroups': [''], 'resources': ['events'], 'verbs': ['list']},
                     {
                         'apiGroups': ['storage.k8s.io'],
                         'resources': ['storageclasses'],
                         'verbs': ['get', 'list', 'watch'],
                     },
-                    {
-                        'apiGroups': [''],
-                        'resources': ['pods', 'pods/log', 'secrets', 'services'],
-                        'verbs': ['*'],
-                    },
-                    {
-                        'apiGroups': ['', 'apps', 'extensions'],
-                        'resources': ['deployments', 'replicasets'],
-                        'verbs': ['*'],
-                    },
-                    {'apiGroups': ['kubeflow.org'], 'resources': ['*'], 'verbs': ['*']},
-                    {'apiGroups': ['batch'], 'resources': ['jobs'], 'verbs': ['*']},
                 ],
             },
             'service': {
@@ -91,13 +85,14 @@ def start_charm():
             },
             'containers': [
                 {
-                    'name': 'jupyterhub',
+                    'name': 'jupyter-web',
                     'imageDetails': {
                         'imagePath': image_info.registry_path,
                         'username': image_info.username,
                         'password': image_info.password,
                     },
                     'ports': [{'name': 'http', 'containerPort': port}],
+                    'config': {'USERID_HEADER': 'kubeflow-userid', 'USERID_PREFIX': ''},
                     'files': [
                         {
                             'name': 'configs',
