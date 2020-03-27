@@ -484,6 +484,12 @@ def setup(controller, services, test_mode):
         wait_msg='Waiting for DNS and storage plugins to finish setting up',
         fail_msg='Waited too long for addons to come up!',
     )
+    wait_for(
+        'microk8s.status',
+        '--wait-ready',
+        wait_msg='Waiting for microk8s to become ready...',
+        fail_msg=f'Couldn\'t enable {service}!',
+    )
 
     args = []
     if test_mode:
