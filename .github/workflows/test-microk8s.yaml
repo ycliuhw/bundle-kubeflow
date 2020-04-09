@@ -1,6 +1,7 @@
 name: MicroK8s Test
 
 on:
+  - push
   - pull_request
 
 jobs:
@@ -63,6 +64,7 @@ jobs:
           cp -r canonical-osm/charms/interfaces/juju-relation-mysql mysql
           python3 ./scripts/cli.py microk8s setup
           KUBEFLOW_AUTH_PASSWORD=foobar python3 ./scripts/cli.py deploy-to uk8s --build
+          microk8s.kubectl wait -n kubeflow --for=condition=ready pod --all
         EOF
     
     - name: Test Kubeflow
@@ -76,7 +78,8 @@ jobs:
     - name: Print failing logs
       run: |
         juju ssh ubuntu/0 <<EOF
-          for pod in $(microk8s.kubectl get pods --field-selector=status.phase=Running -nkubeflow -oname); do
+          set -eux
+          for pod in \$(microk8s.kubectl get pods --field-selector=status.phase=Running -nkubeflow -oname); do
             echo $pod
             microk8s.kubectl logs --tail 1000 --all-containers -nkubeflow $pod
           done
