@@ -23,6 +23,12 @@ def update_image():
     clear_flag("charm.started")
 
 
+@when('cert-manager.available')
+def configure_cert_manager(tls_cert):
+    hookenv.log(tls_cert)
+    tls_cert.configure("foobar-1")
+
+
 @when("layer.docker-resource.oci-image.available", "cert-manager-webhook.available")
 @when_not("charm.started")
 def start_charm():

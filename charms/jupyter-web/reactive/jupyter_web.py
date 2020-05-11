@@ -1,11 +1,11 @@
-from glob import glob
-from pathlib import Path
 import os
+
 import yaml
 
 from charmhelpers.core import hookenv
 from charms import layer
 from charms.reactive import clear_flag, endpoint_from_name, hook, set_flag, when, when_any, when_not
+from jinja2 import Environment, FileSystemLoader
 
 
 @hook('upgrade-charm')
@@ -31,6 +31,8 @@ def start_charm():
     image_info = layer.docker_resource.get_info('oci-image')
     service_name = hookenv.service_name()
 
+    config = {k.replace('-', '_'): v for k, v in dict(hookenv.config()).items()}
+    env = Environment(loader=FileSystemLoader('templates'))
     port = hookenv.config('port')
 
     profiles = endpoint_from_name('kubeflow-profiles').services()[0]
@@ -114,8 +116,9 @@ def start_charm():
                             'name': 'configs',
                             'mountPath': '/etc/config',
                             'files': {
-                                Path(filename).name: Path(filename).read_text()
-                                for filename in glob('files/*')
+                                'spawner_ui_config.yaml': env.get_template(
+                                    'spawner_ui_config.yaml'
+                                ).render(config),
                             },
                         }
                     ],

@@ -1,8 +1,9 @@
 from pathlib import Path
 
 import yaml
+
 from charms import layer
-from charms.reactive import hook, clear_flag, set_flag, when, when_any, when_not
+from charms.reactive import clear_flag, hook, set_flag, when, when_any, when_not
 
 
 @hook('upgrade-charm')
@@ -56,7 +57,7 @@ def start_charm():
                 {
                     'name': 'jupyter-controller',
                     'command': ['/manager'],
-                    'config': {'USE_ISTIO': 'false'},
+                    'config': {'USE_ISTIO': 'false', 'ENABLE_CULLING': 'true'},
                     'imageDetails': {
                         'imagePath': image_info.registry_path,
                         'username': image_info.username,

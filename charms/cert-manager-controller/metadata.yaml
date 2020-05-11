@@ -14,3 +14,6 @@ resources:
 requires:
   cert-manager-webhook:
     interface: http
+provides:
+  cert-manager:
+    interface: tls-cert

@@ -117,5 +117,5 @@ spawnerFormDefaults:
     # value:
     #   - add-gcp-secret
     #   - default-editor
-    value: []
+    value: [{{ form_default_configurations }}]
     readOnly: false

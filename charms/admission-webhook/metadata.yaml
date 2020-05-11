@@ -1,0 +1,13 @@
+name: admission-webhook
+display-name: Admission Webhook
+summary: Injects common data (env vars, volumes) to pods (e.g. notebooks)
+description: https://github.com/kubeflow/kubeflow/blob/master/components/admission-webhook/README.md
+maintainers: [Juju Developers <juju@lists.ubuntu.com>]
+tags: [kubeflow, webhook]
+series: [kubernetes]
+min-juju-version: 2.7.0
+deployment:
+  mode: operator
+requires:
+  cert-manager:
+    interface: tls-cert

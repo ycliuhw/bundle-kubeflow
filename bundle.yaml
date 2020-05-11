@@ -1,5 +1,9 @@
 bundle: kubernetes
 applications:
+  admission-webhook:
+    charm: cs:~kubeflow-charmers/admission-webhook
+    source: ./charms/admission-webhook
+    scale: 1
   ambassador:
     charm: cs:~kubeflow-charmers/ambassador
     source: ./charms/ambassador
@@ -259,6 +263,7 @@ relations:
 - [ambassador, pipelines-viewer]
 - [argo-controller, minio]
 - [cert-manager-controller, cert-manager-webhook]
+- [cert-manager-controller, admission-webhook]
 - [dex-auth, oidc-gatekeeper]
 - [katib-db-manager, katib-db]
 - [kubeflow-profiles, jupyter-web]

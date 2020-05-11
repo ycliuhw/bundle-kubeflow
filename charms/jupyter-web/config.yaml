@@ -3,3 +3,7 @@ options:
     type: int
     default: 5000
     description: The port to listen to
+  form-default-configurations:
+    type: string
+    default: ""
+    description: Default `configurations` option for spawner form

@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+try:
+    import re
+    import os
+    import subprocess
+    import sys
+    from base64 import b64encode
+    from pathlib import Path
+    from functools import partial
+    import json
+
+    from kubernetes import client, config
+
+    from charmhelpers.core import hookenv
+    from charms.reactive import endpoint_from_name
+
+    sys.path.insert(0, os.path.abspath("."))
+    from convert_charm import convert
+
+
+    def run(*args) -> str:
+        hookenv.log(args)
+        p = subprocess.run(
+            args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=os.environ
+        )
+        try:
+            p.check_returncode()
+            foo = p.stdout.decode('utf-8')
+            hookenv.log(foo)
+            hookenv.log(p.stderr.decode('utf-8'))
+            return foo
+        except subprocess.CalledProcessError:
+            hookenv.log(p.stdout.decode('utf-8'))
+            hookenv.log(p.stderr.decode('utf-8'))
+
+    ids = json.loads(run('relation-ids', 'cert-manager', '--format=json'))
+    if len(ids) != 1:
+        hookenv.log(f"Got too few or too many relationship IDs: {ids}")
+        sys.exit(0)
+
+    run('relation-get', '-r', ids[0], '--app', '-', 'admission-webhook/0')
+    relation = json.loads(run('relation-get', '-r', ids[0], '-', 'admission-webhook/0', '--format=json'))
+    hookenv.log(f"DEBUG: `{relation}`")
+
+    tls_cert = endpoint_from_name('cert-manager')
+    hookenv.log(tls_cert)
+    hookenv.log(type(tls_cert))
+    sys.exit(0)
+except Exception as err:
+    hookenv.log(err)
+    sys.exit(1)
+
+
+namespace = os.environ["JUJU_MODEL_NAME"]
+
+os.environ.update(
+    dict(
+        e.split("=")
+        for e in Path("/proc/1/environ").read_text().split("\x00")
+        if "KUBERNETES_SERVICE" in e
+    )
+)
+config.load_incluster_config()
+core_v1 = client.CoreV1Api()
+apps_v1 = client.AppsV1Api()
+
+run(
+    "openssl",
+    "req",
+    "-x509",
+    "-newkey",
+    "rsa:4096",
+    "-keyout",
+    "key.pem",
+    "-out",
+    "cert.pem",
+    "-days",
+    "365",
+    "-subj",
+    "/CN=admission-controller.kubeflow.svc",
+    "-nodes",
+)
+
+ca_bundle = b64encode(Path('cert.pem').read_bytes()).decode('utf-8')
+
+charm_resources = convert(
+    charm=Path("charm.yaml").read_text(), name=hookenv.service_name(), namespace=namespace
+)
+
+for resource in charm_resources:
+    if resource['apiVersion'] == 'v1':
+        api = client.CoreV1Api()
+    elif resource['apiVersion'] == 'apps/v1':
+        api = client.AppsV1Api()
+    elif resource['apiVersion'] == 'rbac.authorization.k8s.io/v1':
+        api = client.RbacAuthorizationV1Api()
+    else:
+        raise Exception(f"Unknown apiVersion {resource['apiVersion']}")
+
+    try:
+        func_name = re.sub('(?!^)([A-Z]+)', r'_\1', resource['kind']).lower()
+        try:
+            func = partial(getattr(api, f'create_namespaced_{func_name}'), namespace=namespace)
+        except AttributeError:
+            func = getattr(api, f'create_{func_name}')
+
+        created = func(body=resource,)
+        hookenv.log(f"{resource['kind']}/{created.metadata.name} created.")
+    except client.rest.ApiException as err:
+        if err.status == 409:
+            hookenv.log(f"{resource['kind']} already created.")
+        else:
+            raise
+
+#  deployment = yaml.safe_load(Path("files/deployment.yaml").read_text())
+#  deployment['spec']['template']['spec']['containers'][0]['name'] = charm['containers'][0]['name']
+#  deployment['spec']['template']['spec']['containers'][0]['image'] = charm['containers'][0]['image']
+#  resp = apps_v1.create_namespaced_deployment(body=deployment, namespace=namespace)
+#  hookenv.log("Deployment created. status='%s'" % resp.metadata.name)
+#  secret = v1.read_namespaced_service(name="admission-webhook-operator", namespace=namespace)
+#  hookenv.log(secret)
+
+run('status-set', 'active', 'active')
+#  with open("/tmp/foo", "w") as f:
+#      p = subprocess.run(
+#          ['juju-log', '-l', 'WARN', '--debug', 'foobar'],
+#          check=True,
+#          stdout=subprocess.PIPE,
+#          stderr=subprocess.PIPE,
+#          env=os.environ,
+#      )
+#      f.write(p.stdout.decode("utf-8"))
+#      f.write("\n/STDOUT\n")
+#      f.write(p.stderr.decode("utf-8"))
+#      f.write("\n/STDERR\n")
