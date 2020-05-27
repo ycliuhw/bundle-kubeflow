@@ -1,0 +1,14 @@
+name: admission-webhook
+display-name: Admission Webhook
+summary: todo
+description: todo
+maintainers: [Juju Developers <juju@lists.ubuntu.com>]
+tags: [kubeflow]
+series: [kubernetes]
+resources:
+  oci-image:
+    type: oci-image
+    description: 'Backing OCI image'
+    auto-fetch: true
+    upstream-source: 'gcr.io/kubeflow-images-public/admission-webhook:vmaster-gaf96e4e3'
+min-juju-version: 2.7.0

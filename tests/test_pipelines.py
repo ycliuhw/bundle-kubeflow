@@ -6,6 +6,7 @@ from kfp import Client
 from .pipelines.cowsay import cowsay_pipeline
 from .pipelines.mnist import mnist_pipeline
 from .pipelines.katib import katib_pipeline
+from .pipelines.jupyter import jupyter_pipeline
 
 
 COWSAY_PARAMS = [{"name": "url", "value": "https://helloacm.com/api/fortune/"}]
@@ -39,6 +40,8 @@ KATIB_PARAMS = [
     }
 ]
 
+JUPYTER_PARAMS = []
+
 
 @pytest.mark.parametrize(
     'name,params,fn',
@@ -46,6 +49,7 @@ KATIB_PARAMS = [
         ('mnist', MNIST_PARAMS, mnist_pipeline),
         ('cowsay', COWSAY_PARAMS, cowsay_pipeline),
         ('katib', KATIB_PARAMS, katib_pipeline),
+        ('jupyter', JUPYTER_PARAMS, jupyter_pipeline),
     ],
 )
 def test_pipelines(name: str, params: list, fn: Callable):
