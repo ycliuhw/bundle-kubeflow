@@ -18,6 +18,7 @@ def test_running_full():
     )
 
     assert statuses == [
+        ('admission-webhook', 'Running'),
         ('ambassador', 'Running'),
         ('argo-controller', 'Running'),
         ('argo-ui', 'Running'),
@@ -189,6 +190,8 @@ def test_service_accounts_created_full():
 
     names = sorted(i['metadata']['name'] for i in crds['items'])
     assert names == [
+        'admission-webhook',
+        'admission-webhook-operator',
         'ambassador',
         'ambassador-operator',
         'argo-controller',

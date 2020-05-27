@@ -1,5 +1,9 @@
 bundle: kubernetes
 applications:
+  admission-webhook:
+    charm: cs:~kubeflow-charmers/admission-webhook
+    source: ./charms/admission-webhook
+    scale: 1
   ambassador:
     charm: cs:~kubeflow-charmers/ambassador
     source: ./charms/ambassador
