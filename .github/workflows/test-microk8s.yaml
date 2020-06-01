@@ -107,7 +107,7 @@ jobs:
           sudo snap install yq
           sudo apt update
           sudo apt install -y libssl-dev
-          sudo pip3 install pytest sh kfp requests pyyaml
+          sudo pip3 install pytest sh kfp requests pyyaml charmcraft
           sudo usermod -a -G microk8s ubuntu
         EOF
 
