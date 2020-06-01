@@ -1,0 +1,2 @@
+ops==0.6.0
+git+git://github.com/johnsca/resource-oci-image.git#oci_image
