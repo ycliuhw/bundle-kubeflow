@@ -1,8 +1,8 @@
 import json
 import os
+from base64 import b64encode
 from pathlib import Path
 from subprocess import run
-from base64 import b64encode
 
 import yaml
 
@@ -69,6 +69,10 @@ KATIB_CONFIG = {
 @when_not('charm.started')
 def start_charm():
     layer.status.maintenance('configuring container')
+
+    if not hookenv.is_leader():
+        layer.status.blocked("this unit is not a leader")
+        return False
 
     image_info = layer.docker_resource.get_info('oci-image')
     namespace = os.environ["JUJU_MODEL_NAME"]

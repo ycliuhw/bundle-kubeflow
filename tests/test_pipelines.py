@@ -4,10 +4,9 @@ import pytest
 from kfp import Client
 
 from .pipelines.cowsay import cowsay_pipeline
-from .pipelines.mnist import mnist_pipeline
-from .pipelines.katib import katib_pipeline
 from .pipelines.jupyter import jupyter_pipeline
-
+from .pipelines.katib import katib_pipeline
+from .pipelines.mnist import mnist_pipeline
 
 COWSAY_PARAMS = [{"name": "url", "value": "https://helloacm.com/api/fortune/"}]
 

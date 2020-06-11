@@ -5,18 +5,18 @@ from hashlib import sha256
 from pathlib import Path
 from uuid import uuid4
 
+import yaml
+
+from charmhelpers.core import hookenv
+from charms import layer
+from charms.reactive import clear_flag, endpoint_from_name, hook, set_flag, when, when_any, when_not
+
 try:
     import bcrypt
 except ImportError:
     subprocess.check_call(["apt", "update"])
     subprocess.check_call(["apt", "install", "-y", "python3-bcrypt"])
     import bcrypt
-
-import yaml
-
-from charmhelpers.core import hookenv
-from charms import layer
-from charms.reactive import clear_flag, endpoint_from_name, hook, set_flag, when, when_any, when_not
 
 
 @hook("upgrade-charm")

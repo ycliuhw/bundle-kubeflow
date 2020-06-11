@@ -1,5 +1,4 @@
 import os
-import shutil
 from base64 import b64encode
 from pathlib import Path
 from subprocess import run
@@ -30,6 +29,10 @@ def update_image():
 @when_not('charm.started')
 def start_charm():
     layer.status.maintenance('configuring container')
+
+    if not hookenv.is_leader():
+        layer.status.blocked("this unit is not a leader")
+        return False
 
     config = hookenv.config()
     image_info = layer.docker_resource.get_info('oci-image')

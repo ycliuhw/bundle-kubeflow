@@ -191,7 +191,7 @@ def jupyter_pipeline(
         notebook_memory,
         notebook_no_workspace,
         notebook_shm,
-        notebook_workspace
+        notebook_workspace,
     ).after(ensure_pd)
 
     wait = wait_task(namespace, endpoint, create.outputs['notebook_name'])

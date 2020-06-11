@@ -1,6 +1,7 @@
+import os
 from glob import glob
 from pathlib import Path
-import os
+
 import yaml
 
 from charmhelpers.core import hookenv
@@ -27,6 +28,10 @@ def update_image():
 @when_not('charm.started')
 def start_charm():
     layer.status.maintenance('configuring container')
+
+    if not hookenv.is_leader():
+        layer.status.blocked("this unit is not a leader")
+        return False
 
     image_info = layer.docker_resource.get_info('oci-image')
     service_name = hookenv.service_name()

@@ -2,8 +2,9 @@ from pathlib import Path
 
 import yaml
 
+from charmhelpers.core import hookenv
 from charms import layer
-from charms.reactive import clear_flag, hook, hookenv, set_flag, when, when_any, when_not
+from charms.reactive import clear_flag, hook, set_flag, when, when_any, when_not
 
 
 @hook('upgrade-charm')
@@ -34,6 +35,10 @@ def update_image():
 @when_not('charm.started')
 def start_charm():
     layer.status.maintenance('configuring container')
+
+    if not hookenv.is_leader():
+        layer.status.blocked("this unit is not a leader")
+        return False
 
     profile_info = layer.docker_resource.get_info('profile-image')
     kfam_info = layer.docker_resource.get_info('kfam-image')

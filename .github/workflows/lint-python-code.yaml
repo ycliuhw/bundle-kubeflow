@@ -1,0 +1,24 @@
+name: Lint code
+
+on:
+  - pull_request
+  - push
+
+jobs:
+  build:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: |
+        pip --version
+        pip3 --version
+        pip3 install --user black==19.10b0 isort
+    
+    - name: Lint code
+      run: |
+        isort --recursive --line-width 100 --check-only .
+        black --check .

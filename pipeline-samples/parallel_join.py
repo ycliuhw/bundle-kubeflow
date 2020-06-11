@@ -17,6 +17,7 @@
 import kfp
 from kfp import dsl
 
+
 def gcs_download_op(url):
     return dsl.ContainerOp(
         name='GCS - Download',

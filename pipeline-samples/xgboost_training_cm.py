@@ -15,12 +15,11 @@
 
 
 import json
-import kfp
-from kfp import components
-from kfp import dsl
-from kfp import gcp
 import os
 import subprocess
+
+import kfp
+from kfp import components, dsl, gcp
 
 confusion_matrix_op = components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/02c991dd265054b040265b3dfa1903d5b49df859/components/local/confusion_matrix/component.yaml')
 

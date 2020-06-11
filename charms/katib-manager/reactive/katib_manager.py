@@ -1,6 +1,6 @@
 from charmhelpers.core import hookenv
 from charms import layer
-from charms.reactive import hook, set_flag, clear_flag, when, when_any, when_not, endpoint_from_name
+from charms.reactive import clear_flag, endpoint_from_name, hook, set_flag, when, when_any, when_not
 
 
 @hook('upgrade-charm')
@@ -22,6 +22,10 @@ def update_image():
 @when_not('charm.started')
 def start_charm():
     layer.status.maintenance('configuring container')
+
+    if not hookenv.is_leader():
+        layer.status.blocked("this unit is not a leader")
+        return False
 
     image_info = layer.docker_resource.get_info('oci-image')
 
