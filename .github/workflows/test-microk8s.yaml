@@ -48,6 +48,11 @@ jobs:
         # so run the tests first that don't check pod states.
         sudo ./tests/run.sh -k 'not kubectl' -m ${{ matrix.bundle }}
         sudo ./tests/run.sh -k 'kubectl' -m ${{ matrix.bundle }}
+        sudo snap restart microk8s
+        sudo microk8s.status --wait-ready
+        juju wait -wv
+        sudo ./tests/run.sh -k 'not kubectl' -m ${{ matrix.bundle }}
+        sudo ./tests/run.sh -k 'kubectl' -m ${{ matrix.bundle }}
 
     - name: Debug failures
       run: |
