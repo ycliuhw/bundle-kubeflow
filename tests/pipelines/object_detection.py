@@ -83,7 +83,7 @@ def train_task(records: InputBinaryFile(str), pretrained: str, exported: OutputB
     shutil.copy('data/pet_label_map.pbtxt', '/records/pet_label_map.pbtxt')
 
     print("Training model")
-    subprocess.run(
+    subprocess.check_call(
         [
             sys.executable,
             'model_main.py',
@@ -94,10 +94,9 @@ def train_task(records: InputBinaryFile(str), pretrained: str, exported: OutputB
             '--pipeline_config_path',
             '/pipeline.config',
         ],
-        check=True,
     )
 
-    subprocess.run(
+    subprocess.check_call(
         [
             sys.executable,
             'export_inference_graph.py',
@@ -110,7 +109,6 @@ def train_task(records: InputBinaryFile(str), pretrained: str, exported: OutputB
             '--output_directory',
             '/exported',
         ],
-        check=True,
     )
 
     with tarfile.open(mode='w:gz', fileobj=exported) as tar:
@@ -126,7 +124,7 @@ def serve_sidecar():
         command='/usr/bin/tensorflow_model_server',
         args=[
             '--model_name=object_detection',
-            '--model_base_path=/exported',
+            '--model_base_path=/output/object_detection',
             '--port=9000',
             '--rest_api_port=9001',
         ],
@@ -138,52 +136,177 @@ def serve_sidecar():
 def test_task(model: InputBinaryFile(str), validation_images: InputBinaryFile(str)):
     """Connects to served model and tests example MNIST images."""
 
-    import tarfile
+    import numpy as np
     import requests
+    import shutil
+    import tarfile
     import time
-    import tensorflow as tf
-    from tensorflow.saved_model import load_v2
-
-    print('Downloaded model, converting it to serving format')
-    print(model)
-    print(dir(model))
+    from matplotlib.pyplot import imread
 
     with tarfile.open(model.name) as tar:
         tar.extractall(path="/")
+    shutil.move('/exported', '/output/object_detection')
+    # https://stackoverflow.com/a/45552938
+    shutil.copytree('/output/object_detection/saved_model', '/output/object_detection/1')
 
     with tarfile.open(validation_images.name) as tar:
         tar.extractall(path="/images")
-
-    import glob
-
-    print(glob.glob('/images/*'))
-    loaded = load_v2('/exported/saved_model')
-    print(loaded)
-    print(type(loaded))
-    print(dir(loaded))
-    print(loaded.asset_paths)
-    print(loaded.graph)
-    print(loaded.initializer)
-    print(loaded.signatures)
-    print(loaded.signatures['serving_default'])
-    print(loaded.tensorflow_version)
-    print(loaded.variables)
-    infer = loaded.signatures['serving_default']
-    print(infer(tf.cast(tf.fill((100, 100, 5, 3), 0), tf.uint8)))
 
     model_url = 'http://localhost:9001/v1/models/object_detection'
     for _ in range(60):
         try:
             requests.get(f'{model_url}/versions/1').raise_for_status()
             break
-        except requests.RequestException:
+        except requests.RequestException as err:
+            print(err)
             time.sleep(5)
     else:
         raise Exception("Waited too long for sidecar to come up!")
 
-    #  response = requests.get('%s/metadata' % model_url)
-    #  response.raise_for_status()
-    #  assert response.json() == {}
+    response = requests.get(f'{model_url}/metadata')
+    response.raise_for_status()
+    assert response.json() == {
+        'model_spec': {'name': 'object_detection', 'signature_name': '', 'version': '1'},
+        'metadata': {
+            'signature_def': {
+                'signature_def': {
+                    'serving_default': {
+                        'inputs': {
+                            'inputs': {
+                                'dtype': 'DT_UINT8',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '3', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'image_tensor:0',
+                            }
+                        },
+                        'outputs': {
+                            'raw_detection_scores': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                        {'size': '38', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'raw_detection_scores:0',
+                            },
+                            'detection_multiclass_scores': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                        {'size': '38', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'detection_multiclass_scores:0',
+                            },
+                            'detection_classes': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'detection_classes:0',
+                            },
+                            'num_detections': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [{'size': '-1', 'name': ''}],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'num_detections:0',
+                            },
+                            'detection_boxes': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                        {'size': '4', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'detection_boxes:0',
+                            },
+                            'raw_detection_boxes': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                        {'size': '4', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'raw_detection_boxes:0',
+                            },
+                            'detection_scores': {
+                                'dtype': 'DT_FLOAT',
+                                'tensor_shape': {
+                                    'dim': [
+                                        {'size': '-1', 'name': ''},
+                                        {'size': '300', 'name': ''},
+                                    ],
+                                    'unknown_rank': False,
+                                },
+                                'name': 'detection_scores:0',
+                            },
+                        },
+                        'method_name': 'tensorflow/serving/predict',
+                    }
+                }
+            }
+        },
+    }
+
+    test_images = np.zeros((5, 100, 100, 3), dtype=np.uint8).tolist()
+    response = requests.post(f'{model_url}:predict', json={'instances': test_images})
+    response.raise_for_status()
+    shapes = {
+        'detection_boxes': (300, 4),
+        'raw_detection_boxes': (300, 4),
+        'detection_scores': (300,),
+        'raw_detection_scores': (300, 38),
+        'detection_multiclass_scores': (300, 38),
+        'detection_classes': (300,),
+    }
+    for i, prediction in enumerate(response.json()['predictions']):
+        print("Checking prediction #%s" % i)
+        for name, shape in shapes.items():
+            assert np.array(prediction[name]).shape == shape, name
+
+    with open('pet.jpg', 'wb') as f:
+        f.write(requests.get('https://people.canonical.com/~knkski/pet.jpg').content)
+    test_image = imread('pet.jpg').reshape((1, 500, 357, 3)).tolist()
+    response = requests.post(f'{model_url}:predict', json={'instances': test_image})
+    response.raise_for_status()
+    print(response.json())
+    shapes = {
+        'detection_boxes': (300, 4),
+        'raw_detection_boxes': (300, 4),
+        'detection_scores': (300,),
+        'raw_detection_scores': (300, 38),
+        'detection_multiclass_scores': (300, 38),
+        'detection_classes': (300,),
+    }
+    for i, prediction in enumerate(response.json()['predictions']):
+        print("Checking prediction #%s" % i)
+        for name, shape in shapes.items():
+            assert np.array(prediction[name]).shape == shape, name
 
 
 @dsl.pipeline(name='Object Detection Example', description='')
@@ -197,6 +320,8 @@ def object_detection_pipeline(
     train = train_task(loaded.outputs['records'], pretrained)
     train.container.set_gpu_limit(1)
 
-    test_task(train.outputs['exported'], loaded.outputs['validation_images']).add_sidecar(serve_sidecar())
+    test_task(train.outputs['exported'], loaded.outputs['validation_images']).add_sidecar(
+        serve_sidecar().set_gpu_limit(1)
+    )
 
     dsl.get_pipeline_conf().add_op_transformer(attach_output_volume)
