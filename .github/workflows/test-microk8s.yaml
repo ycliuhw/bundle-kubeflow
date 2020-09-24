@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        microk8s: [stable, edge]
+        microk8s: [stable, latest/edge, 1.19/edge, edge]
         bundle: [lite, edge]
     steps:
     - name: Check out code
@@ -29,7 +29,7 @@ jobs:
         sudo snap install microk8s --classic --channel ${{ matrix.microk8s }}
         sudo snap install yq
         sudo apt update
-        sudo apt install -y libssl-dev python3-setuptools
+        sudo apt install -y libssl-dev python3-setuptools systemd-coredump
         sudo pip3 install pytest sh kfp requests pyyaml
         sudo usermod -a -G microk8s $USER
 
@@ -52,11 +52,29 @@ jobs:
     - name: Debug failures
       run: |
         set -eux
-        sudo snap logs -n 200 microk8s
-        sudo microk8s status --wait-ready
+
+        sudo ls -lath /var/lib/systemd/coredump
+        for pid in $(sudo coredumpctl --no-legend | awk '{print $5}' || true);
+        do
+          coredumpctl --no-pager info $pid;
+        done
+
+        sudo tail -n 200 /var/log/syslog
+        sudo coredumpctl || true
         sudo microk8s.kubectl get pods -A
         sudo juju status
         sudo ./tests/dump-pipeline-logs.sh
+      if: failure()
+
+    - name: Generate inspect tarball
+      run: sudo microk8s inspect
+      if: failure()
+
+    - name: Upload inspect tarball
+      uses: actions/upload-artifact@v2
+      with:
+        name: inspect-report.tar.gz
+        path: /var/snap/microk8s/*/inspection-report-*.tar.gz
       if: failure()
 
   # Runs tests on AWS that are too big for github actions
